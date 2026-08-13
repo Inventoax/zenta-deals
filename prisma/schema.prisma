@@ -1,0 +1,44 @@
+datasource db {
+  provider = "postgresql"
+ 
+}
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  name         String?
+  walletBalance Float        @default(0.0)
+  createdAt    DateTime      @default(now())
+  transactions Transaction[]
+}
+
+model Transaction {
+  id             String            @id @default(uuid())
+  userId         String
+  user           User              @relation(fields: [userId], references: [id])
+  type           TransactionType   // TOPUP or BUNDLE_PURCHASE
+  amount         Float
+  phoneNumber    String?           // The number receiving the data bundle
+  dataGigabytes  Float?            // The size of the bundle purchased
+  status         TransactionStatus @default(PENDING)
+  reference      String            @unique // Paystack ref or API reference
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+}
+
+enum TransactionType {
+  TOPUP
+  BUNDLE_PURCHASE
+}
+
+enum TransactionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED 
+  REFUNDED 
+}
