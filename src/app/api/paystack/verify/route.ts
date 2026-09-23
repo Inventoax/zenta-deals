@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     console.log(`✅ Verified! Crediting ₵${amountPaid} to ${userEmail}`);
 
     // 3. THE FIX: UPSERT USER (Targeting the clean User and Transaction models)
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction .map((tx: any) => {
       
       // We handle existing or newly discovered customer profiles directly via the balance field
       const user = await tx.user.upsert({
