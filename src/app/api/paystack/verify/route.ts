@@ -34,29 +34,26 @@ export async function POST(request: Request) {
 
     console.log(`✅ Verified! Crediting ₵${amountPaid} to ${userEmail}`);
 
-    // 3. THE FIX: UPSERT USER (Targeting the clean User and Transaction models)
-    const result = await prisma.$transaction .map((tx: any) => {
-      
-      // We handle existing or newly discovered customer profiles directly via the balance field
+    // 3. Proper Prisma Transaction execution
+    const result = await prisma.$transaction(async (tx: any) => {
+      // Upsert user to add money or create new account
       const user = await tx.user.upsert({
         where: { email: userEmail },
-        // CASE A: User Exists -> Add money directly to their profile balance
         update: {
           balance: { increment: amountPaid }
         },
-        // CASE B: User Missing -> Auto-generate user with initial base balance
         create: {
           email: userEmail,
-          password: "temporary_password", // Secure fallback parameter string
+          password: "temporary_password",
           name: "New Agent",
           balance: amountPaid,
         }
       });
 
-      // 4. Record Transaction History log entries
+      // Record Transaction History log entries
       await tx.transaction.create({
         data: {
-          userId: user.id, // Linked cleanly using your modern schema rules
+          userId: user.id,
           amount: Number(amountPaid),
           type: "TOPUP",
           status: "COMPLETED",
@@ -65,7 +62,7 @@ export async function POST(request: Request) {
         }
       });
 
-      // Re-fetch or calculate fresh balance figures safely
+      // Re-fetch fresh balance figures safely
       const finalUser = await tx.user.findUnique({
         where: { id: user.id }
       });
